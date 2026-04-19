@@ -1,15 +1,1 @@
-```
-# Dependencies
-node_modules/
-
-# Build artifacts
-dist/
-
-# Environment variables
-.env
-.env.local
-.env.*
-
-# TypeScript
-*.tsbuildinfo
-```
+Nothing should be ignored since the changes only include documentation files (.md) which are source/config files.
