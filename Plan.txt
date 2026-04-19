@@ -1,0 +1,49 @@
+### **System Architecture & Tech Stack (ข้อเสนอแนะ)**
+
+เพื่อความยืดหยุ่นและการบำรุงรักษาในระยะยาว การเลือกใช้ Stack ที่ทันสมัยจะช่วยให้ระบบทำงานร่วมกับ AI API และ Extension ได้เสถียรที่สุด
+
+| ส่วนประกอบ | เทคโนโลยีที่แนะนำ | หน้าที่หลัก |
+| :--- | :--- | :--- |
+| **Frontend** | React, TypeScript | สร้าง UI จัดการสินค้า, ลิงก์, และตั้งเวลาโพสต์ |
+| **Backend** | Node.js, TypeScript | ควบคุม Logic, คุยกับ AI API, ส่งงานให้ Extension |
+| **Database** | PostgreSQL, Prisma ORM | เก็บข้อมูลสินค้า, สถานะการทำงาน, ข้อมูลตั้งเวลา |
+| **Queue System** | Redis / BullMQ | จัดการคิวงาน Generate ภาพ/วิดีโอ ป้องกันระบบค้าง |
+| **Infrastructure** | Docker Compose | จัดการ Environment ให้พร้อม Deploy บน Server |
+
+---
+
+### **1. Workflow: TikTok Shop (Auto Content & Extension Upload)**
+**เป้าหมาย:** สร้างวิดีโอรีวิวสินค้าความยาว 10-15 วินาที พร้อมเสียงพากย์ภาษาไทย และอัปโหลดผ่าน Chrome Extension โดยไม่มีการแนบลิงก์ภายนอก
+
+1. **Image Composition:** Backend ส่งรูป Default ของสินค้าและ Image Production ไปยัง AI เพื่อประมวลผลเป็นภาพรวมภาพใหม่
+2. **Prompt Generation:** AI สร้าง Prompt สำหรับวิดีโอ โดยกำหนดสไตล์ อารมณ์ตัวละคร และแบ่งเนื้อหาออกเป็น Scene เพื่อความต่อเนื่อง
+3. **State Management:** ระบบบันทึกสถานะ (Progress) ลง Database ทันทีเพื่อติดตามการทำงาน
+4. **Script & Voice Generation:** AI ร่างสคริปต์ภาษาไทยสำหรับรีวิวสินค้า และประมวลผลความยาวให้อยู่ในกรอบ 10-15 วินาทีอย่างเหมาะสม
+5. **Video Rendering:** ส่ง Prompt และภาพประกอบไปยัง AI Video Generator (เช่น Kling AI หรือโมเดลอื่นๆ) เพื่อสร้างวิดีโอคลิปฉบับสมบูรณ์
+6. **Extension Dispatch:** Backend ส่งไฟล์วิดีโอไปยัง Chrome Extension ที่เชื่อมต่อไว้ เพื่อทำการอัปโหลดขึ้น TikTok
+7. **Tracking:** รับค่าผลลัพธ์การโพสต์กลับมาบันทึกลง Database เพื่อจบกระบวนการทำงานของรอบนั้น
+
+---
+
+### **2. Workflow: Facebook (Lip Sync & Shopee Affiliate)**
+**เป้าหมาย:** สร้างคอนเทนต์ภาพนิ่งหรือวิดีโอสั้นแบบ Lip Sync เพื่อโปรโมทสินค้า พร้อมแนบลิงก์ Shopee สำหรับการขาย
+
+1. **Script Preparation:** ดึงรูปภาพสินค้าหลายมุมมองมาวิเคราะห์ เพื่อให้ AI เขียนสคริปต์โปรโมทที่กระชับและดึงดูด
+2. **Lip Sync Generation:** นำสคริปต์และรูปภาพสินค้า (หรือพรีเซนเตอร์) ส่งให้ AI ประมวลผลทำ Lip Sync ให้ดูเป็นธรรมชาติ
+3. **Media Compositing:** นำภาพเคลื่อนไหว Lip Sync มารวมเข้ากับรูปภาพสินค้าหลัก พร้อมใช้เครื่องมือตัดต่ออัตโนมัติจัดองค์ประกอบภาพ
+4. **Publishing & Routing:** นำคอนเทนต์ที่เสร็จสมบูรณ์โพสต์ลง Facebook (โปรไฟล์ส่วนตัว, เพจ, หรือกลุ่มเป้าหมาย) 
+5. **Affiliate Integration:** ระบบจะดึง **Shopee Link** ที่ตั้งค่าไว้ใน Database มาแนบพร้อมกับแคปชั่นโดยอัตโนมัติ
+
+---
+
+### **3. System Design & Future Scalability (การรองรับอนาคต)**
+
+**การขยายแพลตฟอร์ม (YouTube Integration):**
+* ออกแบบ Database Schema ในส่วนของ `Platforms` ให้เป็นระบบ Enum (เช่น `TIKTOK`, `FACEBOOK`, `YOUTUBE`) เพื่อให้การเพิ่ม YouTube Shorts ในอนาคตสามารถทำได้ทันทีโดยไม่ต้องรื้อโครงสร้างฐานข้อมูลใหม่
+* แยกระบบการเก็บลิงก์ให้ชัดเจน (Shopee Link Map กับ Facebook ส่วน TikTok และ YouTube ปล่อยว่างไว้หรือตั้งค่าเป็นลิงก์ประเภทอื่นได้)
+
+**ระบบการจัดการคิว (Queue Management):**
+* การสื่อสารกับ AI API (โดยเฉพาะการสร้างวิดีโอ) จะใช้เวลานาน ระบบ Backend จะต้องไม่ทำงานแบบ 동기 (Synchronous) แต่ให้โยนงานเข้า Queue และให้ Worker คอยเช็คสถานะการ Generate แทน เพื่อป้องกันปัญหา Timeout
+
+**ระบบจัดการผู้ใช้งาน (Role-Based Access Control):**
+* หน้า UI ของแอดมินแยกส่วนการตั้งค่า API Key / Token ของ Facebook และ Extension ออกจากหน้าจัดการสินค้าทั่วไปอย่างชัดเจน
