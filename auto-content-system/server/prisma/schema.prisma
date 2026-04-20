@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  TIKTOK
+  FACEBOOK
+  YOUTUBE
+}
+
+enum TaskStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  UPLOADED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  products      Product[]
+  tasks         ContentTask[]
+  platformConfigs PlatformConfig[]
+
+  @@map("users")
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  images        String[] // Array of image URLs
+  shopeeLink    String?  // For Facebook affiliate
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tasks         ContentTask[]
+
+  @@map("products")
+}
+
+model ContentTask {
+  id              String      @id @default(uuid())
+  platform        Platform
+  status          TaskStatus  @default(PENDING)
+  productId       String
+  product         Product     @relation(fields: [productId], references: [id])
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  prompt          String?
+  script          String?
+  videoUrl        String?
+  imageUrl        String?
+  scheduledAt     DateTime?
+  postedAt        DateTime?
+  externalLink    String?     // Shopee link for Facebook, empty for TikTok/YouTube
+  errorMessage    String?
+  metadata        Json?       // Additional data per platform
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([platform])
+  @@index([status])
+  @@index([userId])
+  @@map("content_tasks")
+}
+
+model PlatformConfig {
+  id          String   @id @default(uuid())
+  platform    Platform
+  apiKey      String?
+  apiSecret   String?
+  token       String?   // Access token for API calls
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, platform])
+  @@map("platform_configs")
+}
