@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { Platform, TaskStatus } from '@prisma/client';
+import { videoGenerationQueue, lipSyncQueue } from '../lib/queue';
 
 const router = Router();
 
@@ -89,10 +90,24 @@ router.post('/tiktok', authenticate, async (req: AuthRequest, res) => {
       },
     });
 
-    // TODO: Add to queue for processing
-    // await taskQueue.add('generate-tiktok-video', { taskId: task.id });
+    // Add to queue for processing
+    const job = await videoGenerationQueue.add('generate-tiktok-video', {
+      taskId: task.id,
+      productId,
+      platform: 'TIKTOK',
+      options: {
+        style: 'modern',
+        voiceId: 'th-TH-Premwadee',
+      },
+    });
 
-    res.status(201).json(task);
+    console.log(`✅ TikTok task #${task.id} added to queue (Job ID: ${job.id})`);
+
+    res.status(201).json({
+      ...task,
+      jobId: job.id,
+      message: 'Task queued for processing',
+    });
   } catch (error) {
     console.error('Create TikTok task error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -130,10 +145,20 @@ router.post('/facebook', authenticate, async (req: AuthRequest, res) => {
       },
     });
 
-    // TODO: Add to queue for processing
-    // await taskQueue.add('generate-facebook-content', { taskId: task.id });
+    // Add to queue for processing (Lip Sync for Facebook)
+    const job = await lipSyncQueue.add('generate-facebook-lipsync', {
+      taskId: task.id,
+      productId,
+      platform: 'FACEBOOK',
+    });
 
-    res.status(201).json(task);
+    console.log(`✅ Facebook task #${task.id} added to queue (Job ID: ${job.id})`);
+
+    res.status(201).json({
+      ...task,
+      jobId: job.id,
+      message: 'Task queued for processing',
+    });
   } catch (error) {
     console.error('Create Facebook task error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -170,10 +195,24 @@ router.post('/youtube', authenticate, async (req: AuthRequest, res) => {
       },
     });
 
-    // TODO: Add to queue for processing
-    // await taskQueue.add('generate-youtube-short', { taskId: task.id });
+    // Add to queue for processing (same as TikTok but for YouTube Shorts)
+    const job = await videoGenerationQueue.add('generate-youtube-short', {
+      taskId: task.id,
+      productId,
+      platform: 'YOUTUBE',
+      options: {
+        style: 'modern',
+        voiceId: 'th-TH-Premwadee',
+      },
+    });
 
-    res.status(201).json(task);
+    console.log(`✅ YouTube task #${task.id} added to queue (Job ID: ${job.id})`);
+
+    res.status(201).json({
+      ...task,
+      jobId: job.id,
+      message: 'Task queued for processing',
+    });
   } catch (error) {
     console.error('Create YouTube task error:', error);
     res.status(500).json({ error: 'Internal server error' });

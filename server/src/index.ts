@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import productRoutes from './routes/products';
 import taskRoutes from './routes/tasks';
 import platformRoutes from './routes/platforms';
+import { videoWorker, lipSyncWorker } from './workers/video.worker';
 
 dotenv.config();
 
@@ -27,9 +28,12 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/platforms', platformRoutes);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📡 API Endpoints:`);
+  console.log(`\n🎬 Workers initialized:`);
+  console.log(`   - Video Generation Worker (TikTok/YouTube)`);
+  console.log(`   - Lip Sync Worker (Facebook)`);
+  console.log(`\n📡 API Endpoints:`);
   console.log(`   - POST /api/auth/register`);
   console.log(`   - POST /api/auth/login`);
   console.log(`   - GET  /api/auth/me`);
